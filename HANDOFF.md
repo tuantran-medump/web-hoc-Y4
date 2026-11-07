@@ -7,74 +7,62 @@
 ---
 
 ## 1. Nhiệm vụ Hiện tại (Active Task)
-- **Tên tính năng / Task**: `Triển khai & Tích hợp Toàn diện Web Học Y4 (Dashboard Kanban + Web Thi thử /thi + Web Thư viện /tai-lieu)`
-- **Nhánh / Worktree**: `docs/ke-hoach-web` (Đã gộp toàn bộ code từ Claude + Codex + Antigravity)
+- **Tên tính năng / Task**: `[Luồng C — Nâng cấp Major Version & Vá Bảo mật]: Xử lý cảnh báo npm allowScripts (esbuild), nâng cấp next@16.4.5, vitest@5.1.0, @types/node@24 và đạt 0 vulnerabilities`
+- **Nhánh / Worktree**: `main`
 - **Agent phụ trách chính**:
-  - **Antigravity (`Gemini Pro` — 50%)**: Orchestrator (W0.1), Design System & Shell (W0.2), UI Kanban (W1.1), UI Web Thi (W2.1), UI Thư viện (W2.2), Print/PDF UI (W3.1), Tích hợp Full-Stack (W4).
-  - **Claude Code (`Claude Pro` — 15%)**: Core Citation & Graph Coloring Engine (W1.4), Core Exam Hooks (`useCountdown`, `useExamAttempt`).
-  - **Codex (`GPT Pro` — 35%)**: Exam Parser (W1.2), Repositories & Exam API (W1.3), Google Drive Sync API (W1.5), Unit Tests (W3.2).
+  - **Antigravity (`Gemini Pro Argon 4` — 50% tải • Orchestrator & Lockfile Owner)**: Độc quyền sửa `package.json`, `package-lock.json`, `tsconfig.json`, cấu hình `allowScripts` cho `npm` major mới, kiểm tra UI/Pages dưới Next.js 16 và quản lý Merge/Push.
+  - **Claude Code (`Claude Pro` — 15% tải • Breaking-Change & Hook Adapter)**: Rà soát & tinh chỉnh tương thích React 19 / Next 16 cho các Custom Hooks (`src/hooks/useCountdown.ts`, `src/hooks/useExamAttempt.ts`) và `src/lib/citation/index.ts` nếu phát sinh cảnh báo kiểu dữ liệu hoặc lifecycle.
+  - **Codex (`GPT Pro` — 35% tải • Audit, Test & Backend Verifier)**: Cập nhật `vitest.config.ts` & bộ test `tests/unit/**` tương thích `vitest@5.1.0` + `@types/node@24`, chạy vòng lặp `npm.cmd audit` $\rightarrow$ `npm.cmd run typecheck` $\rightarrow$ `npm.cmd test` $\rightarrow$ `npm.cmd run build` và review `git diff`.
+- **Agent dự phòng (Backup)**: `Codex (Backend/Test/Audit) | Antigravity (UI/Lockfile/Full-stack)`
 
 ---
 
-## 2. Tóm tắt Ngữ cảnh & Kiến trúc Đã Tích hợp
+## 2. Tóm tắt Ngữ cảnh (Context Brief — Do Antigravity chuẩn bị cho Claude & Codex)
 
-### A. Hợp đồng dữ liệu chung (`src/types/`)
-- `src/types/dashboard.ts`: `BoardColumn`, `BoardCard`, `BoardCardStat`, `DashboardBoardState`.
-- `src/types/exam.ts`: `ContentBlock`, `QuestionType`, `Choice`, `RubricItem`, `Question`, `ExamSection`, `Station`, `Exam`, `AnswerEdit`, `AnswerValue`, `SelfGrade`, `Attempt`, `ParseIssue`, `ParseResult`, `ExamBackupPayload`.
-- `src/types/library.ts`: `SourceRef`, `DocBlockKind`, `DocSegment`, `DocBlock` (đã bổ sung `listOrdered`, `listNumber`), `LibraryDoc`, `DocTocItem`, `RenderedDoc`, `SyncErrorItem`, `SyncReport`.
-- `src/types/index.ts`: Re-export toàn bộ + `ApiResponse<T>`.
+### A. Chẩn đoán 4 Vấn đề Cần Xử lý Triệt để
+1. **Cảnh báo `npm warn install-scripts` (`esbuild@0.28.2`)**:
+   - Ở bản `npm` major kế tiếp, các gói chạy `postinstall` chưa được phê duyệt trong `allowScripts` của `package.json` sẽ bị chặn mặc định.
+   - **Giải pháp (Antigravity)**: Chạy `npm.cmd install-scripts approve esbuild` / thêm cấu hình `allowScripts` vào `package.json`.
+2. **Lỗ hổng Bảo mật `postcss <= 8.5.22` (High) trong `next@15.5.29`**:
+   - **Giải pháp (Antigravity)**: Nâng `next` lên `^16.4.5` trong `package.json` và cập nhật `tsconfig.json` (`jsx: "react-jsx"` theo chuẩn Next 16).
+3. **Lỗ hổng Bảo mật `tinypool <= 2.1.1` (Critical) & `@vitest/mocker <= 4.1.11` (Moderate) trong `vitest@3.2.7`**:
+   - **Giải pháp (Antigravity + Codex)**: Antigravity nâng `vitest` lên `^5.1.0` và `@types/node` lên `^24.0.0` (khớp Node `v24.21.0`). Codex kiểm tra `vitest.config.ts` và toàn bộ 10 file test trong `tests/**` để đảm bảo 36/36 tests pass trên Vitest 5.
+4. **Kiểm tra Tương thích Hooks & Server dưới Next.js 16 + Node 24**:
+   - **Claude**: Kiểm tra `src/hooks/useCountdown.ts`, `src/hooks/useExamAttempt.ts` và `src/lib/citation/index.ts` đảm bảo không dùng API bị deprecated trong React 19 / Next 16 (ví dụ kiểu `useRef`, cleanup timer, SSR hydration guard).
+   - **Codex**: Kiểm tra `src/server/**` và `src/app/api/**` dưới `@types/node@24` và Next 16 Route Handlers.
 
-### B. Các phân hệ đã hoàn thiện & ghép nối
-1. **Design System & Shell (`src/components/ui/**`, `src/app/dev/ui/page.tsx`)**:
-   - Đầy đủ `Button`, `IconButton`, `Card`, `Badge`, `Tabs`, `Modal`, `Sheet`, `Tooltip` (hover trên PC `@media (hover: hover)`, chạm mở popover trên cảm ứng), `ToastProvider`, `Input`, `Select`, `TagInput`, `EmptyState`, `Skeleton`, `ThemeToggle`, `FontSizeControl`, `AppShell`.
-   - Hỗ trợ Dark Mode, chỉnh cỡ chữ (`A-`, `A`, `A+`), PWA (`public/manifest.webmanifest`, `public/icon.svg`), và 8 bảng màu pastel tô nguồn tài liệu (`cite-color-0..7`) kèm xoay hue tự động khi vượt 8 màu.
-2. **Dashboard Kanban (`src/app/(dashboard)/page.tsx`, `src/features/dashboard/**`)**:
-   - 3 cột mặc định (`Đang dùng`, `Ôn tập`, `Lưu trữ`), kéo thả thẻ giữa các cột, menu chuyển cột/thứ tự trên cảm ứng, cuộn ngang `scroll-snap` trên màn hình điện thoại `<768px`, thêm ghi chú & thêm cột mới, hiển thị số liệu đề thi và tài liệu thời gian thực.
-3. **Web con 1 — Thi thử Lâm sàng & OSCE (`src/app/thi/**`, `src/features/exam/**`, `src/hooks/**`, `src/server/exam/**`, `src/lib/exam-parser/**`)**:
-   - `/thi`: Ngân hàng đề thi (có sẵn 2 đề mẫu Nội khoa & OSCE Trạm từ `docs/mau/`), tìm kiếm, lọc môn/tag, thùng rác 30 ngày + khôi phục, Sao lưu & Khôi phục JSON.
-   - `/thi/nap-de`: Nạp đề từ file hoặc văn bản chuẩn, phân tích qua `/api/exam/parse`, hiển thị danh sách lỗi `ParseIssue[]` cạnh bản xem trước từng câu hỏi trước khi lưu.
-   - `/thi/de/[id]`: Xem chi tiết câu hỏi, nút ✏️ sửa đáp án đúng / đáp án mẫu / ghi chú và tab **Lịch sử sửa đáp án** có nút **↩ Hoàn tác** (`POST /api/exam/:id/edits/:editId/undo`).
-   - `/thi/de/[id]/lam-bai`: Phòng thi tích hợp `useExamAttempt` & `useCountdown` của Claude với API của Codex:
-     - Đồng hồ sticky dựa trên `endsAt` tuyệt đối, cảnh báo mốc 5 phút / 1 phút (đổi màu + rung), giữ sáng màn hình (Wake Lock), tự nộp khi hết giờ.
-     - Chế độ Luyện tập (`practice`) cho phép tạm dừng / tiếp tục và xem đáp án ngay.
-     - Chế độ Thi trạm (`station` OSCE) có màn chuẩn bị chuyển trạm 10 giây, đồng hồ riêng từng trạm, khoá trạm cũ.
-     - Sau khi nộp: tự động chấm điểm trắc nghiệm (`gradeChoices`), giao diện tự chấm câu tự luận theo từng ý `Barem` (`SelfGrade`) và tính tổng điểm.
-   - `/thi/lich-su`: Lịch sử các lần thi, trạng thái chấm và nút làm tiếp / xem lại bài làm.
-4. **Web con 2 — Thư viện Tài liệu Chú thích Nguồn (`src/app/tai-lieu/**`, `src/features/library/**`, `src/lib/citation/**`, `src/server/library/**`)**:
-   - Đã nối trực tiếp `renderLibraryMarkdown` của Claude vào `createLibraryService` của Codex trong `src/server/library/index.ts`.
-   - `/tai-lieu`: Danh sách tài liệu (có sẵn tài liệu mẫu *Suy tim mạn — Chẩn đoán và điều trị*), lọc thư mục/tag, nút **🔄 Cập nhật từ Drive** gọi `POST /api/library/sync` (có khoá 409 chống chạy trùng) và hiển thị `SyncReport`.
-   - `/tai-lieu/[id]`: Trình đọc tài liệu khổ trang A4 hoặc chữ chảy liên tục, thanh công cụ Zoom, Bật/Tắt tô màu nguồn, Mục lục tự động (`toc`), tô màu đoạn văn theo đồ thị nguồn không xung đột, rê chuột hoặc chạm vào đoạn màu / số `[n]` hiện Popover chứa tiêu đề nguồn và nút **Mở trên Google Drive ↗** (mọi link trong thân bài đã bị ẩn hoàn toàn).
-5. **Xuất PDF A4 (`src/lib/print/**`, `/thi/de/[id]/in`, `/tai-lieu/[id]/in`)**:
-   - Đề thi hỗ trợ 3 chế độ in: `Đề trống`, `Đề + Đáp án & Barem`, `Bài làm đã chấm` (`break-inside: avoid` chống cắt câu giữa trang).
-   - Tài liệu hỗ trợ in `Có màu nguồn` (`print-color-adjust: exact`) hoặc `Đen trắng`, kèm danh mục Nguồn tham khảo cuối bài.
+### B. Phân vùng File Độc quyền (Chống Xung Đột 100%)
+- **Vùng Độc quyền của Antigravity (`Gemini Pro Argon 4`)**:
+  - `package.json`, `package-lock.json`, `tsconfig.json`, `next.config.ts`, `src/types/**`, `src/components/ui/**`, `src/app/**` (trừ `src/app/api/**`).
+- **Vùng của Claude (`Claude Pro`)**:
+  - `src/hooks/useCountdown.ts`, `src/hooks/useExamAttempt.ts`, `src/lib/citation/index.ts`.
+  - *(Lưu ý: Không sửa `package.json`, không tự chạy vòng lặp build/test tốn token).*
+- **Vùng của Codex (`GPT Pro`)**:
+  - `vitest.config.ts`, `src/server/**`, `src/app/api/**`, `src/lib/exam-parser/index.ts`, `tests/**`.
 
 ---
 
 ## 3. Tiến độ Chi tiết (Checklist)
 
-### Wave 0 — Khởi tạo Hợp đồng Dữ liệu & Design System
-- [x] **W0.1 (Antigravity - ORCH)**: Chốt `src/types/{dashboard,exam,library,index}.ts`, tạo cây thư mục phân vùng và `.env.example`.
-- [x] **W0.2 (Antigravity - SA-UI)**: Xây dựng Design System (`src/components/ui/**`), responsive shell, dark mode, cỡ chữ, PWA manifest và trang `/dev/ui`.
+### Bước 1 — Antigravity (`Gemini Pro Argon 4` — Lockfile & Next 16 Upgrade)
+- [ ] **U1.1**: Cập nhật `package.json` (`next@^16.4.5`, `vitest@^5.1.0`, `@types/node@^24.0.0`, cấu hình `allowScripts` cho `esbuild`), chạy `npm.cmd install` và cập nhật `tsconfig.json`.
+- [ ] **U1.2**: Commit `package.json` + `package-lock.json` + `tsconfig.json` để khoá nền tảng thư viện trước khi giao Claude/Codex.
 
-### Wave 1 — Core Logic, Parser & Backend Services
-- [x] **W1.4 & Hooks (Claude Code)**:
-  - [x] Viết `src/lib/citation/index.ts` (`renderLibraryMarkdown`, `assignSourceColors`).
-  - [x] Viết `src/hooks/useCountdown.ts` & `src/hooks/useExamAttempt.ts`.
-- [x] **W1.2, W1.3, W1.5 (Codex)**:
-  - [x] Viết `src/lib/exam-parser/index.ts` (`parseExamText`, `parseExamPdf` + kiểm tra lỗi `ParseIssue[]`).
-  - [x] Viết `src/server/db/index.ts` (Memory Repositories có sẵn dữ liệu mẫu Y4) & `src/server/exam/grading.ts` (`gradeChoices`).
-  - [x] Viết API routes `src/app/api/exam/**` & `src/server/library/index.ts` + `src/app/api/library/**`.
-- [x] **W1.1 (Antigravity - SA-DASH)**:
-  - [x] Dựng Kanban Dashboard tại `src/app/(dashboard)/page.tsx` và `src/features/dashboard/**`.
+### Bước 2 — Claude Code (`Claude Pro` — Rà soát Kiến trúc Hooks & Citation)
+- [ ] **U2.1**: Đọc `src/hooks/useCountdown.ts`, `src/hooks/useExamAttempt.ts`, `src/lib/citation/index.ts`, tinh chỉnh nếu có cảnh báo kiểu dữ liệu hoặc edge case với React 19 / Next 16 strict types.
 
-### Wave 2 & Wave 3 — Giao diện Web Con, Xuất PDF & Kiểm thử
-- [x] **W2.1 (Antigravity - SA-EXAM)**: Dựng UI Ngân hàng đề, Nạp đề + Preview, Sửa đáp án + Hoàn tác, Làm bài chuẩn/trạm OSCE, Tự chấm barem, Lịch sử (`/thi/**`).
-- [x] **W2.2 (Antigravity - SA-LIB)**: Dựng UI Thư viện tài liệu, nút Đồng bộ Drive, Trình đọc A4 tô màu theo nguồn + Tooltip mở link Drive (`/tai-lieu/**`).
-- [x] **W3.1 (Antigravity - SA-PRINT)**: Dựng trang xuất PDF A4 cho Đề thi (`/thi/de/[id]/in`) và Tài liệu (`/tai-lieu/[id]/in`).
-- [x] **W3.2 (Codex + Antigravity - SA-QA)**: 10 bộ Unit Tests (`36 tests passed`), `npm.cmd run typecheck` PASS, `npm.cmd run build` PASS.
+### Bước 3 — OpenAI Codex (`GPT Pro` — Vitest 5, Audit & Regression Loop)
+- [ ] **U3.1**: Kiểm tra & cập nhật `vitest.config.ts`, `src/server/**`, `src/app/api/**` và `tests/**` tương thích `vitest@5.1.0` & `@types/node@24`.
+- [ ] **U3.2**: Chạy đủ 4 lệnh: `npm.cmd audit` (0 vulnerabilities), `npm.cmd run typecheck` (0 errors), `npm.cmd test` (100% pass), `npm.cmd run build` (Next 16 build pass) và cập nhật `HANDOFF.md`.
+
+### Bước 4 — Antigravity (`Gemini Pro Argon 4` — Release Manager)
+- [ ] **U4.1**: Gộp code từ các nhánh/worktree (nếu tách nhánh), kiểm tra dev server, merge vào `main` và `git push` lên GitHub.
 
 ---
 
-## 4. Việc cần bạn làm tay khi triển khai thực tế (🔒)
-1. Nếu muốn đồng bộ Google Drive thật: điền `GOOGLE_SERVICE_ACCOUNT_JSON` và `DRIVE_ROOT_FOLDER_ID` vào `.env.local` (xem `.env.example`).
-2. Nếu muốn lưu trữ cố định qua Supabase thay cho Memory/JSON Backup: tạo project Supabase và cấu hình biến môi trường trong `.env.local`.
+## 4. Trạng thái Đang làm dở (Current State / In-Progress)
+- **File vừa hoàn thành**:
+  - Đã cập nhật bộ quy chuẩn phân quyền đa Agent (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `MULTI_AGENT_CHECKLIST.md`, `PROMPTS_PLAYBOOK.md`) ở cả dự án này và `C:\Users\Admin\Downloads\multi-agent-starter-kit`.
+- **File đang sửa dở**: `Không có`
+- **Ghi chú bàn giao cho Agent kế tiếp**:
+  - `Sẵn sàng chạy Bước 1 (Antigravity nâng cấp package.json + lockfile), sau đó giao Bước 2 cho Claude và Bước 3 cho Codex.`

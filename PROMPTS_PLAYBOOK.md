@@ -1,75 +1,83 @@
-# 🎯 PROMPTS_PLAYBOOK.md — Bộ Câu Lệnh Copy-Paste Để Phân Việc Cho Antigravity, Claude & Codex
+# 🎯 PROMPTS_PLAYBOOK.md — Bộ Câu Lệnh Copy-Paste Phân Việc Cho Antigravity, Claude & Codex
 
-Mỗi lần bắt đầu code một tính năng mới trên **Orca**, bạn chỉ cần mở file này, **Copy & Paste** đúng câu lệnh tương ứng cho từng Agent (chỉ cần thay phần trong ngoặc vuông `[...]`).
+Mỗi lần bắt đầu **Tính năng mới**, **Sửa Bug**, hoặc **Nâng cấp Thư viện / Vá Bảo mật npm** trên **Orca**, bạn chỉ cần mở file này và **Copy & Paste** đúng câu lệnh tương ứng cho từng Agent.
 
 ---
 
-## BƯỚC 1: Giao cho Antigravity (Gemini Pro) — Chuẩn bị & Chia việc
-> **Mục đích**: Để Antigravity quét repo, chốt kiểu dữ liệu (`src/types/index.ts`) và viết sẵn kế hoạch chia việc vào `HANDOFF.md` giúp **Claude không tốn token** mò code.
+# PHẦN I — QUY TRÌNH PHÁT TRIỂN TÍNH NĂNG MỚI (NEW FEATURE)
 
-### 📋 Prompt 1A — Khởi động tính năng mới & Chia việc tự động
+## BƯỚC 1: Giao cho Antigravity (`Gemini Pro Argon 4`) — Chuẩn bị, Cài Deps & Chia việc
 ```text
-Mình muốn làm tính năng mới: [Mô tả ngắn gọn tính năng bạn muốn làm].
-Hãy thực hiện vai trò Orchestrator:
-1. Quét codebase hiện tại và cập nhật kiểu dữ liệu chung cần thiết vào `src/types/index.ts`.
-2. Điền đầy đủ mục Context Brief và chia Checklist công việc cụ thể cho 3 Agent (Antigravity làm UI, Claude làm Core Architecture/Hooks phức tạp, Codex làm Backend Service & Unit Test) vào file `HANDOFF.md`.
-3. Cho mình biết phần nào bạn làm ngay, và câu lệnh cụ thể để mình giao cho Claude và Codex.
+Mình muốn làm tính năng mới: [Mô tả ngắn gọn tính năng].
+Hãy thực hiện vai trò Orchestrator & Lockfile Owner:
+1. Quét codebase, cập nhật kiểu dữ liệu chung vào `src/types/` và cài đặt thêm thư viện vào `package.json` (nếu cần).
+2. Điền đầy đủ Context Brief và chia Checklist phân vùng độc lập cho 3 Agent (Antigravity làm UI/Pages, Claude làm Core Architecture/Hooks phức tạp, Codex làm Backend Service & Unit Test) vào `HANDOFF.md`.
+3. Cho mình biết phần nào bạn làm ngay, và in ra câu lệnh cụ thể để mình giao cho Claude và Codex.
 ```
 
----
-
-## BƯỚC 2: Giao cho Claude Code (`claude.cmd` — Claude Pro)
-> **Mục đích**: Chỉ giao việc khó (Kiến trúc, State/Hooks phức tạp, Logic nhiều ràng buộc) sau khi Antigravity đã chuẩn bị sẵn `HANDOFF.md`.
-
-### 📋 Prompt 2A — Giao Claude viết Core Logic / Kiến trúc (Tiết kiệm Token)
+## BƯỚC 2: Giao cho Claude Code (`claude.cmd` — Claude Pro • 15% tải)
 ```text
 Đọc `CLAUDE.md` và `HANDOFF.md`.
-Thực hiện đúng phần việc được giao cho Claude trong Checklist của `HANDOFF.md` (chỉ đọc các file đã liệt kê trong mục Context Brief, không tự quét toàn bộ repo và không chạy vòng lặp test/build).
-Sau khi code xong từng file, hãy cập nhật trạng thái vào `HANDOFF.md`.
+Thực hiện đúng phần việc được giao cho Claude trong Checklist của `HANDOFF.md`:
+- Chỉ đọc các file đã liệt kê trong mục Context Brief, KHÔNG tự quét toàn bộ repo.
+- KHÔNG sửa `package.json` hay `src/types/**` (nếu cần bổ sung trường, hãy ghi đề xuất vào mục 4 của `HANDOFF.md`).
+- KHÔNG chạy vòng lặp test/build tốn token. Sau khi code xong từng file, hãy cập nhật trạng thái vào `HANDOFF.md`.
 ```
 
-### 📋 Prompt 2B — Giao Claude tối ưu / Refactor đoạn code khó
-```text
-Đọc `HANDOFF.md` và chỉ mở file `[đường-dẫn-file]`.
-Hãy thiết kế lại / tối ưu logic tại `[tên hàm hoặc component]` sao cho sạch, đúng chuẩn TypeScript strict và dễ mở rộng. Không chạy test/build, chỉ sửa code và ghi chú lại vào `HANDOFF.md`.
-```
-
----
-
-## BƯỚC 3: Giao cho OpenAI Codex (`codex.cmd` — GPT Pro)
-> **Mục đích**: Tận dụng quota lớn của GPT Pro để viết Backend nặng, thuật toán, viết Unit/Integration Test, chạy vòng lặp `typecheck -> test -> fix` và Review code.
-
-### 📋 Prompt 3A — Giao Codex viết Backend / API / Xử lý dữ liệu
+## BƯỚC 3: Giao cho OpenAI Codex (`codex.cmd` — GPT Pro • 35% tải)
 ```text
 Đọc `AGENTS.md` và `HANDOFF.md`.
-Hãy triển khai phần Backend Service / API được giao cho Codex trong `HANDOFF.md` (tuân thủ chặt chẽ kiểu dữ liệu trong `src/types/index.ts`).
-Sau khi viết xong, hãy chạy `npm.cmd run typecheck` và `npm.cmd test` để đảm bảo không có lỗi, rồi cập nhật `HANDOFF.md`.
+Hãy triển khai phần Backend Service / Parser / API và Unit Tests được giao cho Codex trong `HANDOFF.md`:
+- Tuân thủ chặt chẽ kiểu dữ liệu trong `src/types/` và không sửa `package.json` hay vùng UI của Antigravity.
+- Sau khi viết xong, hãy chạy `npm.cmd run typecheck`, `npm.cmd test` và `npm.cmd run build` để sửa sạch lỗi, rồi cập nhật báo cáo vào `HANDOFF.md`.
 ```
 
-### 📋 Prompt 3B — Giao Codex chạy vòng lặp Test, Sửa lỗi Build & Review Code (Sau khi Claude/Antigravity code xong)
+## BƯỚC 4: Giao cho Antigravity (`Gemini Pro Argon 4` — 50% tải) — Dựng UI, Ghép nối, Merge & Push
+```text
+Đọc `HANDOFF.md`.
+1. Gộp code từ nhánh/worktree của Claude và Codex về nhánh tích hợp.
+2. Xây dựng hoàn chỉnh giao diện UI trong `src/components/ui/` và `src/app/`, nối với Hooks của Claude và API của Codex.
+3. Chạy kiểm tra cuối (`npm.cmd run typecheck`, `npm.cmd test`, `npm.cmd run build`), merge vào `main` và `git push` lên GitHub.
+```
+
+---
+
+# PHẦN II — QUY TRÌNH SỬA BUG & NÂNG CẤP MAJOR VERSION (`npm` / BẢO MẬT)
+
+## 🛠️ Prompt B1 — Giao Antigravity Chẩn đoán Bug / Nâng cấp `package.json` & Chia việc
+```text
+Mình cần xử lý lỗi / nâng cấp hệ thống: [Mô tả lỗi hoặc cảnh báo npm/build].
+Hãy thực hiện vai trò Orchestrator & Lockfile Owner:
+1. Kiểm tra nguyên nhân gốc rễ (nếu cần cập nhật `package.json`, `allowScripts` hoặc `package-lock.json` thì chỉ một mình bạn thực hiện và commit trước).
+2. Khoanh vùng chính xác các file cần sửa vào `HANDOFF.md` và chia quyền xử lý cho Claude (nếu có thay đổi kiến trúc/hook phức tạp) và Codex (sửa lỗi kiểu dữ liệu, cập nhật Unit Test, chạy vòng lặp `typecheck -> test -> build -> audit`).
+3. Đưa cho mình câu lệnh copy-paste để giao cho Claude và Codex.
+```
+
+## 🛠️ Prompt B2 — Giao Claude xử lý Breaking Changes / Bug Logic Khó (Tiết kiệm Token)
+```text
+Đọc `CLAUDE.md` và `HANDOFF.md`.
+Chỉ mở đúng các file được khoanh vùng cho Claude trong `HANDOFF.md` để xử lý lỗi logic / tương thích Breaking Changes.
+Không tự quét repo, không sửa `package.json`, không chạy vòng lặp build/test. Cập nhật kết quả vào `HANDOFF.md` ngay khi sửa xong.
+```
+
+## 🛠️ Prompt B3 — Giao Codex Chạy Vòng Lặp Sửa Lỗi, Audit & Regression Test
 ```text
 Đọc `AGENTS.md` và `HANDOFF.md`.
-1. Chạy `npm.cmd run typecheck` và `npm.cmd test`, tự động sửa toàn bộ lỗi TypeScript hoặc lỗi test nếu có.
-2. Viết bổ sung Unit Test trong thư mục `tests/` cho các logic mới vừa thêm (bao gồm cả edge cases).
-3. Chạy `git diff main...HEAD` để review toàn bộ code mới (kiểm tra lỗi logic, race condition, bảo mật) và hoàn thiện nốt, sau đó cập nhật `HANDOFF.md`.
+1. Chạy `npm.cmd run typecheck`, `npm.cmd test`, `npm.cmd run build` và `npm.cmd audit`.
+2. Sửa toàn bộ lỗi tương thích kiểu dữ liệu, lỗi runtime hoặc lỗi test trong vùng được giao (`src/server/`, `src/lib/`, `tests/`).
+3. Viết bổ sung Unit Test chống tái phát lỗi, chạy `git diff` để review an toàn bảo mật rồi cập nhật `HANDOFF.md`.
 ```
 
----
-
-## BƯỚC 4: Giao cho Antigravity (Gemini Pro) — Làm UI, Ghép nối & Chốt hạ
-> **Mục đích**: Dựng giao diện, nối Frontend với Backend của Claude/Codex, chạy thử trên trình duyệt và push lên GitHub.
-
-### 📋 Prompt 4A — Dựng Giao diện (UI) & Ghép nối Full-Stack
+## 🛠️ Prompt B4 — Giao Antigravity Chốt hạ, Merge `main` & Push lên GitHub
 ```text
-Đọc `HANDOFF.md`. Hãy xây dựng giao diện UI trong `src/components/ui/` và `src/app/`, kết nối với Hooks/Backend mà Claude và Codex đã viết.
-Sau đó kiểm tra lại `npm.cmd run typecheck`, `npm.cmd test` và cập nhật `HANDOFF.md`.
+Đọc `HANDOFF.md`, gộp toàn bộ phần sửa lỗi của Claude và Codex, kiểm tra lại `npm.cmd run typecheck && npm.cmd test && npm.cmd run build`, sau đó merge vào `main` và `git push` lên GitHub.
 ```
 
 ---
 
-## 🚑 CỨU HỘ KHẨN CẤP: Khi Claude hoặc Codex hết Token giữa chừng
+# 🚑 CỨU HỘ KHẨN CẤP: Khi Claude hoặc Codex hết Token giữa chừng
 
-Khi một Agent đang chạy mà báo hết limit / dừng giữa chừng, mở ngay Agent dự phòng (**Codex** nếu đang làm Backend/Logic/Test; **Antigravity** nếu đang làm UI/Full-stack) trong **cùng Worktree** và paste:
+Mở ngay Agent dự phòng (**Codex** nếu đang làm Backend/Logic/Test; **Antigravity** nếu đang làm UI/Full-stack) trong **cùng Worktree** và paste:
 
 ```text
 Tiếp quản công việc đang dở: Hãy đọc `HANDOFF.md`, chạy `git status --short` và `git diff` để nắm chính xác những dòng code Agent trước đang viết dở, sau đó hoàn thiện nốt các mục còn lại trong Checklist.

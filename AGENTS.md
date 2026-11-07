@@ -1,22 +1,37 @@
-# AGENTS.md — Quy chuẩn Điều phối & Phối hợp Đa Agent (Orca Workspace)
+# AGENTS.md — Quy chuẩn Điều phối & Phân Quyền Đa Agent (Orca Workspace)
 
 Dự án Web App này được vận hành song song bởi 3 AI Agent trên **Orca**:
-1. **Antigravity (`Gemini Pro`)** — *Orchestrator, Context Scout, UI/Frontend & Integration (50% khối lượng)*
-2. **Codex (`GPT Pro`)** — *Heavy Backend Logic, Build/Test Loop, Debugging & Code Review (35% khối lượng)*
-3. **Claude Code (`Claude Pro`)** — *System Architect & Complex Refactoring/UI Polish (15% khối lượng — Ưu tiên tiết kiệm token)*
+1. **Antigravity (`Gemini Pro Argon 4`)** — *Orchestrator, Package/Lockfile Owner, Context Scout, UI/Frontend & Release Manager (50% khối lượng)*
+2. **Codex (`GPT Pro`)** — *Heavy Backend Logic, Build/Test/Audit Loop, Debugging & Code Review (35% khối lượng)*
+3. **Claude Code (`Claude Pro`)** — *System Architect, Breaking-Change Adapter & Complex Logic/Hooks (15% khối lượng — Ưu tiên tiết kiệm token)*
 
 ---
 
-## 1. Giao thức Chuyển giao & Backup khi Hết Token (Failover Protocol)
+## 1. Ma trận Phân Quyền Độc Quyền (Chống Xung Đột File & Bảo Vệ Token)
 
-Mọi Agent làm việc trên bất kỳ worktree nào trong Orca **BẮT BUỘC** tuân thủ quy tắc lưu trạng thái trên đĩa (`State-on-Disk`) để Agent khác có thể tiếp quản tức thì nếu hết quota/token giữa chừng:
+Để không bao giờ xảy ra xung đột `package-lock.json`, `src/types/**` hay ghi đè file giữa các worktree, mọi Agent **BẮT BUỘC** tuân thủ bảng phân quyền đọc/ghi sau:
+
+| Tài nguyên / Nhiệm vụ | Antigravity (`Gemini Pro Argon 4`) | Claude (`Claude Pro`) | Codex (`GPT Pro`) |
+| :--- | :---: | :---: | :---: |
+| **`package.json`, `package-lock.json`, `npm allowScripts`, cài/nâng cấp thư viện** | ✅ **ĐỘC QUYỀN** | ❌ Cấm sửa | ❌ Cấm sửa |
+| **`src/types/**` (Hợp đồng dữ liệu chung)** | ✅ **ĐỘC QUYỀN (Chốt ở Bước 0)** | ❌ Cấm sửa (Đề xuất qua `HANDOFF.md`) | ❌ Cấm sửa (Đề xuất qua `HANDOFF.md`) |
+| **`src/components/ui/**`, `src/app/**` (Pages, Layouts, CSS, Print PDF)** | ✅ **Phụ trách chính** | ⚠️ Chỉ sửa khi được giao polish | ❌ Cấm sửa |
+| **`src/hooks/**`, `src/lib/**` (Thuật toán lõi, AST, State phức tạp)** | 🔄 Backup / Tích hợp | ✅ **Phụ trách chính** | 🔄 Viết/bảo trì parser & helpers |
+| **`src/server/**`, `src/app/api/**` (DB, API Routes, Sync, Validation)** | 🔄 Ghép nối gọi API | ⚠️ Chỉ thiết kế kiến trúc lõi | ✅ **Phụ trách chính** |
+| **`tests/**` + Vòng lặp `typecheck` $\rightarrow$ `test` $\rightarrow$ `build` $\rightarrow$ `audit`** | 🔄 Chạy kiểm tra cuối trước khi merge | ❌ **CẤM chạy vòng lặp tốn token** | ✅ **Phụ trách chính** |
+| **Gộp nhánh (`git merge`), giải quyết conflict & `git push` lên GitHub** | ✅ **ĐỘC QUYỀN (Release Manager)** | ❌ Không tự merge vào `main` | ❌ Không tự merge vào `main` |
+
+---
+
+## 2. Giao thức Chuyển giao & Backup khi Hết Token (Failover Protocol)
+
+Mọi Agent làm việc trên bất kỳ worktree nào trong Orca **BẮT BUỘC** tuân thủ quy tắc lưu trạng thái trên đĩa (`State-on-Disk`):
 
 ### A. Trước và Trong khi làm việc (Mọi Agent)
 1. **Đọc `HANDOFF.md`** đầu tiên để nắm mục tiêu, danh sách file liên quan và trạng thái hiện tại.
 2. **Cập nhật `HANDOFF.md` theo từng bước nhỏ**:
-   - Đánh dấu `[x]` vào mục vừa hoàn thành.
-   - Ghi rõ file đang sửa dở tại mục `Current State / In-Progress`.
-   - Không giữ kế hoạch chỉ trong bộ nhớ phiên chat.
+   - Đánh dấu `[x]` vào mục vừa hoàn thành, `[-]` vào mục đang làm.
+   - Ghi rõ file đang sửa dở và các đề xuất thay đổi `types`/`deps` tại mục `Current State / In-Progress`.
 
 ### B. Khi nhận lệnh "Tiếp quản" (Takeover Mode)
 Khi người dùng yêu cầu tiếp quản công việc từ Agent trước (do hết token hoặc chuyển vai):
@@ -26,39 +41,40 @@ Khi người dùng yêu cầu tiếp quản công việc từ Agent trước (do
 
 ---
 
-## 2. Phân công Nhiệm vụ cho từng Agent
+## 3. Quy trình 3 Luồng Chuẩn (Tính năng mới • Sửa Bug • Nâng cấp Major Version)
 
-### Với Codex (GPT Pro)
-- Đảm nhận phần **Backend phức tạp, xử lý dữ liệu, thuật toán và viết Tests (Unit/Integration/E2E)**.
-- Chịu trách nhiệm chính cho vòng lặp tốn nhiều token: **Chạy Build $\rightarrow$ Chạy Test $\rightarrow$ Phân tích lỗi $\rightarrow$ Sửa lỗi**.
-- Khi được yêu cầu Review: Dùng `git diff main...HEAD` để tìm lỗi bảo mật, race conditions, edge cases và thiếu sót về kiểu dữ liệu (TypeScript types).
-- Là **Agent Backup số 1** khi Claude Pro hết token ở các tác vụ logic, API, state management, hoặc refactoring.
+### Luồng A — Phát triển Tính năng Mới (New Feature Flow)
+1. **Bước 0 (Antigravity)**: Quét repo, chốt `src/types/**`, cài thêm thư viện vào `package.json` (nếu cần), điền `Context Brief` vào `HANDOFF.md` và commit lên nhánh gốc.
+2. **Bước 1 (Song song)**:
+   - **Claude**: Viết thuật toán lõi / Custom Hooks phức tạp (`src/hooks/**`, `src/lib/**`).
+   - **Codex**: Viết Backend Services, API Routes & Unit Tests (`src/server/**`, `src/app/api/**`, `tests/**`).
+   - **Antigravity**: Dựng UI Components & Pages (`src/components/ui/**`, `src/app/**`).
+3. **Bước 2 (Codex)**: Chạy `npm.cmd run typecheck && npm.cmd test && npm.cmd run build`, sửa sạch lỗi phát sinh và review `git diff`.
+4. **Bước 3 (Antigravity)**: Gộp nhánh, kiểm tra trên trình duyệt, merge vào `main` và `git push`.
 
-### Với Antigravity (Gemini Pro)
-- Đảm nhận khảo sát codebase, gom ngữ cảnh vào `HANDOFF.md`, dựng UI/UX, ghép nối Frontend-Backend và kiểm thử trên Browser.
-- Là **Agent Backup số 1** khi Claude Pro hết token ở các tác vụ giao diện, bố cục trang, routing và tích hợp full-stack.
+### Luồng B — Sửa Bug & Xử lý Lỗi (Bugfix Triage Flow)
+1. **Bước 1 (Antigravity — Khoanh vùng)**: Đọc log lỗi / tái hiện lỗi trên UI, xác định chính xác file và dòng gây lỗi, ghi vào `HANDOFF.md`.
+2. **Bước 2 (Phân loại & Giao việc)**:
+   - **Bug giao diện / CSS / Routing / Hydration** $\rightarrow$ **Antigravity** tự sửa ngay.
+   - **Bug API / Database / Validation / Test fail / Edge cases** $\rightarrow$ Giao **Codex** sửa kèm viết thêm Unit Test chống tái phát.
+   - **Bug kiến trúc / Race condition trong Hooks / Thuật toán phức tạp** $\rightarrow$ Giao **Claude** sửa chính xác tại file đã khoanh vùng (không quét cả repo).
+3. **Bước 3 (Codex & Antigravity)**: Codex chạy lại bộ test; Antigravity gộp nhánh và `git push`.
 
-### Với Claude Code (Claude Pro)
-- Tập trung vào thiết kế kiến trúc, giải quyết bài toán khó và tinh chỉnh code chất lượng cao.
-- Tuân thủ nghiêm ngặt quy tắc tiết kiệm token trong `CLAUDE.md`.
+### Luồng C — Nâng cấp Thư viện / Major Version & Vá Bảo mật (`npm audit` / Breaking Changes)
+1. **Bước 1 (Antigravity — Lockfile Owner)**:
+   - Chạy `npm.cmd outdated` & `npm.cmd audit`.
+   - Độc quyền cập nhật `package.json`, cấu hình `allowScripts` (cho `npm` major mới), chạy `npm.cmd install` và commit `package.json` + `package-lock.json` trước tiên.
+2. **Bước 2 (Claude — Breaking API Adapter, chỉ gọi khi có thay đổi kiến trúc/API phức tạp)**:
+   - Tinh chỉnh các file cấu hình hoặc hàm lõi bị ảnh hưởng bởi Breaking Changes theo danh sách Antigravity đã lọc sẵn trong `HANDOFF.md`.
+3. **Bước 3 (Codex — Regression & Audit Verifier)**:
+   - Chạy `npm.cmd run typecheck`, `npm.cmd test`, `npm.cmd run build`, `npm.cmd audit`.
+   - Sửa toàn bộ lỗi tương thích kiểu dữ liệu (`@types/*`, `vitest`, `next`) trong `src/server/**` và `tests/**`.
+4. **Bước 4 (Antigravity)**: Kiểm tra giao diện dev server, merge vào `main` và `git push`.
 
 ---
 
-## 3. Quy chuẩn Code chung & Cấu trúc Thư mục Web App
-- **Ngôn ngữ & Kiểu dữ liệu**: Ưu tiên TypeScript chặt chẽ (`strict: true`), hạn chế tối đa `any`.
-- **Cấu trúc Thư mục Phân tầng (Tránh xung đột file khi chạy song song)**:
-  - `src/types/index.ts` — Hợp đồng dữ liệu chung (Interfaces/Types). Chốt file này trước khi tách nhánh.
-  - `src/components/ui/` & `src/app/` — Tầng Giao diện & Routing (**Antigravity** phụ trách chính).
-  - `src/hooks/` — Tầng State & Client Hooks (**Claude / Antigravity** phụ trách).
-  - `src/server/` & `src/app/api/` — Tầng Backend Services & API (**Claude / Codex** phụ trách).
-  - `tests/` — Tầng Unit & Integration Tests (**Codex** phụ trách chính).
-- **Quy tắc Bảo mật PowerShell (BẮT BUỘC dùng `.cmd`, KHÔNG chạy `.ps1`)**:
-  - Máy giữ nguyên chế độ khóa `.ps1` (`Restricted`) để bảo mật.
-  - **TUYỆT ĐỐI KHÔNG** chạy `Set-ExecutionPolicy` hoặc cố gọi file `.ps1`.
-  - Mọi lệnh CLI trên Windows PowerShell **BẮT BUỘC** gọi trực tiếp qua đuôi `.cmd`:
-    - `npm.cmd install`, `npm.cmd run dev`, `npm.cmd run build`, `npm.cmd run typecheck`, `npm.cmd test`
-    - `npx.cmd <package>`
-    - `claude.cmd`, `codex.cmd`
-- **Git & Orca Worktrees**:
-  - Mỗi tính năng/nhiệm vụ chạy trên một nhánh/worktree riêng của Orca.
-  - Commit nhỏ, rõ nghĩa khi hoàn thành từng mốc ổn định.
+## 4. Quy tắc Bảo mật PowerShell & Git
+- **BẮT BUỘC dùng `.cmd` trên Windows PowerShell (KHÔNG chạy `.ps1`)**:
+  - Máy giữ nguyên chế độ khóa `.ps1` (`Restricted`). **TUYỆT ĐỐI KHÔNG** chạy `Set-ExecutionPolicy`.
+  - Mọi lệnh CLI phải gọi qua đuôi `.cmd`: `npm.cmd install`, `npm.cmd run dev`, `npm.cmd run build`, `npm.cmd run typecheck`, `npm.cmd test`, `npm.cmd audit`, `npx.cmd <pkg>`, `claude.cmd`, `codex.cmd`.
+- **TypeScript**: Luôn bật `strict: true`, hạn chế tối đa `any`.
