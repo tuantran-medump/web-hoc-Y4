@@ -36,36 +36,35 @@
 | D8 | Tooltip | **@floating-ui/react** | Tự lật vị trí khi sát mép màn hình nhỏ. |
 | D9 | Kiểm tra dữ liệu | **zod** | Kiểm tra đề sau khi parse và dữ liệu Drive. |
 | D10 | Test | **Vitest** (unit) + **Playwright** (E2E với các profile Desktop Chrome, iPad Pro 11, iPhone 14, Pixel 7) | Bao phủ đủ bốn loại thiết bị. |
-| D11 | Người dùng | **Một tài khoản (bạn)**, đăng nhập bằng Supabase Auth email | Bảo vệ ngân hàng đề và API Drive. |
+| D11 | Người dùng | **Không có đăng nhập**. Web dùng cá nhân, mở là dùng. | Bạn đã chốt bỏ đăng nhập. |
 | D12 | Kiểu PDF xuất ở web con 2 | Câu yêu cầu bị cắt ở "xuất pdf dạng ...". Mặc định: **giống trình đọc** (giữ màu theo nguồn, số chú thích, danh mục nguồn có link ở cuối) | Bạn cần xác nhận hoặc sửa. |
 
-> ⚠️ Theo quy tắc của bạn, **không giao tự động cho agent** các phần: đăng nhập/xác thực (D11), tạo và lưu secret (Supabase key, service account JSON), deploy, xoá dữ liệu. Những mục này được đánh dấu 🔒 bên dưới. Bạn hoặc Claude làm tay.
+> ⚠️ Theo quy tắc của bạn, **không giao tự động cho agent** các phần: tạo và lưu secret (Supabase key, service account JSON), deploy, xoá dữ liệu. Những mục này được đánh dấu 🔒 bên dưới. Bạn hoặc Claude làm tay.
 
 ---
 
 ## 2. Chức năng bạn chưa nhắc nhưng nên có
 
 **Mức bắt buộc (làm trong bản đầu)**
-1. **Đăng nhập một tài khoản** 🔒: không có đăng nhập thì ai biết URL cũng xem và sửa được ngân hàng đề.
-2. **Tự lưu bài đang làm và làm tiếp**: lưu sau mỗi lần chọn đáp án. Tải lại trang, hết pin hay đổi máy vẫn làm tiếp. Đồng hồ lưu **thời điểm kết thúc**, không lưu số giây còn lại, nên không bị lệch.
-3. **Xem trước khi nạp đề**: sau khi parse PDF, hiện bản xem trước và danh sách lỗi (ví dụ "Câu 12 thiếu đáp án") rồi mới lưu.
-4. **Lịch sử làm bài và điểm**: danh sách các lần thi, điểm, thời gian, xem lại từng câu.
-5. **Bảng điều hướng câu và cờ đánh dấu**: nhảy tới câu bất kỳ, đánh dấu câu cần xem lại, xem câu nào chưa làm.
-6. **Tìm kiếm và lọc theo tag/môn** ở cả ngân hàng đề và thư viện.
-7. **Responsive và PWA**: cài lên màn hình chính iPhone/Android/iPad, có icon và splash.
-8. **Chế độ sáng/tối và chỉnh cỡ chữ** (cần cho đọc tài liệu dài trên điện thoại).
-9. **Thùng rác (xoá mềm)**: xoá đề hoặc tài liệu thì vào thùng rác 30 ngày, tránh mất dữ liệu do bấm nhầm.
-10. **Sao lưu và khôi phục JSON** toàn bộ ngân hàng đề và lịch sử.
-11. **Giữ màn hình sáng khi thi** (Screen Wake Lock API), báo rung hoặc âm thanh khi còn 5 phút, còn 1 phút và khi chuyển trạm.
+1. **Tự lưu bài đang làm và làm tiếp**: lưu sau mỗi lần chọn đáp án. Tải lại trang, hết pin hay đổi máy vẫn làm tiếp. Đồng hồ lưu **thời điểm kết thúc**, không lưu số giây còn lại, nên không bị lệch.
+2. **Xem trước khi nạp đề**: sau khi parse PDF, hiện bản xem trước và danh sách lỗi (ví dụ "Câu 12 thiếu đáp án") rồi mới lưu.
+3. **Lịch sử làm bài và điểm**: danh sách các lần thi, điểm, thời gian, xem lại từng câu.
+4. **Bảng điều hướng câu và cờ đánh dấu**: nhảy tới câu bất kỳ, đánh dấu câu cần xem lại, xem câu nào chưa làm.
+5. **Tìm kiếm và lọc theo tag/môn** ở cả ngân hàng đề và thư viện.
+6. **Responsive và PWA**: cài lên màn hình chính iPhone/Android/iPad, có icon và splash.
+7. **Chế độ sáng/tối và chỉnh cỡ chữ** (cần cho đọc tài liệu dài trên điện thoại).
+8. **Thùng rác (xoá mềm)**: xoá đề hoặc tài liệu thì vào thùng rác 30 ngày, tránh mất dữ liệu do bấm nhầm.
+9. **Sao lưu và khôi phục JSON** toàn bộ ngân hàng đề và lịch sử.
+10. **Giữ màn hình sáng khi thi** (Screen Wake Lock API), báo rung hoặc âm thanh khi còn 5 phút, còn 1 phút và khi chuyển trạm.
 
 **Mức nên có (bản sau)**
-12. **Sổ câu sai**: tự gom câu làm sai để ôn lại, có lặp lại ngắt quãng đơn giản (sai thì 1 ngày sau hỏi lại, đúng thì giãn ra 3, 7, 14 ngày).
-13. **Tạo đề ngẫu nhiên** từ ngân hàng theo tag/môn và số câu; **trộn thứ tự câu và đáp án**.
-14. **Thống kê**: tỉ lệ đúng theo môn/tag, câu hay sai nhất.
-15. **Trình đọc**: mục lục bên cạnh, thanh tiến độ đọc, nhớ vị trí đọc, đánh dấu trang, tìm trong tài liệu, highlight và ghi chú cá nhân.
-16. **Phóng to ảnh** (chụm hai ngón trên cảm ứng, bấm để xem toàn màn hình) ở cả đề thi và tài liệu.
-17. **Đọc offline** các tài liệu đã đồng bộ (cache trong IndexedDB và service worker).
-18. **Lịch sử sửa đáp án**: mỗi lần sửa đáp án đều ghi lại giá trị cũ, giá trị mới và thời gian, có nút hoàn tác.
+11. **Sổ câu sai**: tự gom câu làm sai để ôn lại, có lặp lại ngắt quãng đơn giản (sai thì 1 ngày sau hỏi lại, đúng thì giãn ra 3, 7, 14 ngày).
+12. **Tạo đề ngẫu nhiên** từ ngân hàng theo tag/môn và số câu; **trộn thứ tự câu và đáp án**.
+13. **Thống kê**: tỉ lệ đúng theo môn/tag, câu hay sai nhất.
+14. **Trình đọc**: mục lục bên cạnh, thanh tiến độ đọc, nhớ vị trí đọc, đánh dấu trang, tìm trong tài liệu, highlight và ghi chú cá nhân.
+15. **Phóng to ảnh** (chụm hai ngón trên cảm ứng, bấm để xem toàn màn hình) ở cả đề thi và tài liệu.
+16. **Đọc offline** các tài liệu đã đồng bộ (cache trong IndexedDB và service worker).
+17. **Lịch sử sửa đáp án**: mỗi lần sửa đáp án đều ghi lại giá trị cũ, giá trị mới và thời gian, có nút hoàn tác.
 
 ---
 
@@ -358,10 +357,10 @@ Mỗi subagent làm trong **worktree và nhánh riêng `agy/<ma-task>`**, ví d�
 ### W1.3 — SA-API: Repository và API đề thi
 - **Mục tiêu**:
   - Interface `ExamRepository`, `AttemptRepository`, `BoardRepository`, `LibraryRepository` trong `src/server/db/`. Có 2 adapter: `memory` (cho test và dev chưa có secret) và `supabase`.
-  - Migration SQL: bảng `exams` (jsonb), `answer_edits`, `attempts`, `board`, `library_docs`. Bucket `exam-assets`. Bật RLS theo `auth.uid()`.
+  - Migration SQL: bảng `exams` (jsonb), `answer_edits`, `attempts`, `board`, `library_docs`. Bucket `exam-assets`.
   - API: CRUD đề (có xoá mềm và khôi phục), PATCH đáp án (ghi `answer_edits`), tạo, lưu tạm và nộp bài, chấm trắc nghiệm trên server (`gradeChoices`), lưu điểm tự chấm, export/import JSON.
   - Chấm `mcq_multi`: đúng toàn bộ mới có điểm (mặc định). Để sẵn tuỳ chọn chấm từng phần.
-- 🔒 **Không làm**: tạo project Supabase, key thật, cấu hình Auth. Chỉ đọc biến môi trường. Thiếu biến thì tự chuyển sang adapter `memory`.
+- 🔒 **Không làm**: tạo project Supabase, key thật. Chỉ đọc biến môi trường. Thiếu biến thì tự chuyển sang adapter `memory`.
 - **Kiểm tra**: unit test `gradeChoices` và các repository với adapter memory, `typecheck`.
 
 ### W1.4 — SA-CITE: Chú thích, tô màu, ẩn liên kết
@@ -382,7 +381,7 @@ Mỗi subagent làm trong **worktree và nhánh riêng `agy/<ma-task>`**, ví d�
 
 ### W1.5 — SA-DRIVE: Đồng bộ Drive thủ công
 - **Mục tiêu**:
-  - `POST /api/library/sync` (cần đăng nhập): liệt kê đệ quy thư mục gốc (`DRIVE_ROOT_FOLDER_ID`), lấy file `.md`, `_nguon.md` và ảnh. So `modifiedTime` và `md5Checksum` với cache để chỉ tải file thay đổi. Lưu nội dung md và metadata. File bị xoá trên Drive thì đánh dấu `deletedAt`, không xoá cứng. Trả về `SyncReport`.
+  - `POST /api/library/sync`: liệt kê đệ quy thư mục gốc (`DRIVE_ROOT_FOLDER_ID`), lấy file `.md`, `_nguon.md` và ảnh. So `modifiedTime` và `md5Checksum` với cache để chỉ tải file thay đổi. Lưu nội dung md và metadata. File bị xoá trên Drive thì đánh dấu `deletedAt`, không xoá cứng. Trả về `SyncReport`.
   - **Không có cron, không webhook, không tự đồng bộ khi mở trang.** Chỉ chạy khi bấm nút.
   - Ảnh trong md dùng đường dẫn tương đối (`./hinh/abc.png`). Khi sync, đổi đường dẫn này thành `/api/library/image/<driveFileId>`. Route này proxy ảnh và đặt cache header dài.
   - Khoá chống chạy đồng thời: đang sync thì request thứ hai nhận 409.
@@ -448,11 +447,10 @@ Mỗi subagent làm trong **worktree và nhánh riêng `agy/<ma-task>`**, ví d�
 
 ## 7. Việc bạn hoặc Claude làm tay (🔒)
 
-1. Tạo project Supabase, bật Auth email, tạo tài khoản của bạn, điền `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` vào `.env.local`.
+1. Tạo project Supabase, điền `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` vào `.env.local`.
 2. Google Cloud: bật Drive API, tạo service account, tải JSON vào `GOOGLE_SERVICE_ACCOUNT_JSON`, chia sẻ thư mục tài liệu cho email của service account (quyền Viewer), điền `DRIVE_ROOT_FOLDER_ID`.
-3. Viết middleware chặn route khi chưa đăng nhập (`/thi/**`, `/tai-lieu/**`, `/api/**`).
-4. Deploy (gợi ý Vercel) và đặt biến môi trường trên đó.
-5. Review `git diff`, chạy test và build, rồi merge.
+3. Deploy (gợi ý Vercel) và đặt biến môi trường trên đó.
+4. Review `git diff`, chạy test và build, rồi merge.
 
 ---
 
@@ -480,7 +478,7 @@ Mục tiêu: <copy từ mục 6>
 Được sửa: <danh sách>
 KHÔNG được sửa: src/types/**, package.json, file của subagent khác, mọi file .env*
 Không tự thêm dependency. Cần thêm thì ghi đề xuất vào HANDOFF.md.
-Không làm việc 🔒 (auth, secret, deploy, xoá dữ liệu thật).
+Không làm việc 🔒 (secret, deploy, xoá dữ liệu thật).
 Kiểm tra bắt buộc: npm.cmd run typecheck && npm.cmd test && npm.cmd run build
 Xong khi: tất cả lệnh kiểm tra pass, đã commit trên nhánh, HANDOFF.md có báo cáo gồm: file đã sửa, test đã thêm, việc còn dở, rủi ro.
 ```
