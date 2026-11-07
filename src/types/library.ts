@@ -39,8 +39,12 @@ export interface DocBlock {
    * heading: không tô màu (sourceKey = null).
    */
   segments: DocSegment[];
-  /** Cấp độ tiêu đề (1-6) nếu kind === 'heading' */
+  /** Cấp độ tiêu đề (1-6) nếu kind === 'heading', hoặc mức thụt lề nếu kind === 'list' */
   level?: number;
+  /** Chỉ có ở block list: true nếu là danh sách có đánh số */
+  listOrdered?: boolean;
+  /** Chỉ có ở block list có số: số thứ tự gốc trong Markdown */
+  listNumber?: number;
   /** Nội dung bảng hoặc hình phục vụ render chuyên biệt */
   figureSrc?: string;
   figureAlt?: string;
