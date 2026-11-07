@@ -49,14 +49,17 @@
 - [x] **U1.2**: Commit `package.json` + `package-lock.json` + `tsconfig.json` để khoá nền tảng thư viện trước khi giao Claude/Codex.
 
 ### Bước 2 — Claude Code (`Claude Pro` — Rà soát Kiến trúc Hooks & Citation)
-- [ ] **U2.1**: Đọc `src/hooks/useCountdown.ts`, `src/hooks/useExamAttempt.ts`, `src/lib/citation/index.ts`, rà soát và tinh chỉnh nếu có điểm cần tối ưu dưới `jsx: "react-jsx"` / React 19 / Next 16 strict types.
+- [x] **U2.1**: Đọc `src/hooks/useCountdown.ts`, `src/hooks/useExamAttempt.ts`, `src/lib/citation/index.ts`, rà soát và tinh chỉnh nếu có điểm cần tối ưu dưới `jsx: "react-jsx"` / React 19 / Next 16 strict types.
+  - Kết quả (Claude): `tsc --noEmit` 0 lỗi (chạy 1 lần). Sửa 1 điểm: hai hook ghi `ref.current` trong lúc render → thay bằng `useLatestRef` (export từ `useCountdown.ts`, cập nhật trong `useLayoutEffect`), đúng khuyến nghị React 19 / React Compiler. API công khai không đổi.
+  - Đã kiểm tra, không cần sửa: mọi `useRef` đều có đối số (bắt buộc ở `@types/react@19`); timer dùng `ReturnType<typeof setTimeout>` nên hợp cả DOM lẫn `@types/node@24`; `document`/`window` chỉ dùng trong effect (an toàn SSR); hooks không chứa JSX nên `jsx: "react-jsx"` không ảnh hưởng; `src/lib/citation` thuần TS, không dùng React/DOM, chạy được cả server lẫn client.
+  - Ghi chú: `useExamAttempt` gọi `setState` trong effect khi `initialAttempt.id` đổi (nạp attempt khác). Chạy đúng; nếu sau này bật lint `react-hooks` v6 mà rule này báo, cách gọn nhất là để trang cha truyền `key={attempt.id}`.
 
 ### Bước 3 — OpenAI Codex (`GPT Pro` — Vitest 5 Native Config, Audit & Regression Loop)
-- [ ] **U3.1**: Đổi/cập nhật cấu hình Vitest (`vitest.config.ts` $\rightarrow$ `vitest.config.mts` dùng `url.fileURLToPath`) để xử lý triệt để cảnh báo `configLoader: 'native'` của Vite/Vitest major version kế tiếp, và kiểm tra tương thích `@types/node@24` trong `src/server/**`, `src/app/api/**`, `tests/**`.
-- [ ] **U3.2**: Chạy đủ 4 lệnh: `npm.cmd audit` (0 vulnerabilities), `npm.cmd run typecheck` (0 errors), `npm.cmd test` (100% pass, 0 cảnh báo configLoader), `npm.cmd run build` (Next 16 Turbopack build pass) và cập nhật `HANDOFF.md`.
+- [x] **U3.1**: Đổi/cập nhật cấu hình Vitest (`vitest.config.ts` $\rightarrow$ `vitest.config.mts` dùng `url.fileURLToPath`) để xử lý triệt để cảnh báo `configLoader: 'native'` của Vite/Vitest major version kế tiếp, và kiểm tra tương thích `@types/node@24` trong `src/server/**`, `src/app/api/**`, `tests/**`.
+- [x] **U3.2**: Chạy đủ 4 lệnh: `npm.cmd audit` (0 vulnerabilities), `npm.cmd run typecheck` (0 errors), `npm.cmd test` (100% pass, 0 cảnh báo configLoader), `npm.cmd run build` (Next 16 Turbopack build pass) và cập nhật `HANDOFF.md`.
 
 ### Bước 4 — Antigravity (`Gemini Pro Argon 4` — Release Manager)
-- [ ] **U4.1**: Gộp code từ các nhánh/worktree (nếu tách nhánh), kiểm tra dev server, merge vào `main` và `git push` lên GitHub.
+- [x] **U4.1**: Gộp code từ Claude & Codex trên `main`, kiểm tra lần cuối, commit và `git push` lên GitHub.
 
 ---
 
@@ -64,7 +67,16 @@
 - **File vừa hoàn thành (Bước 1 — Antigravity)**:
   - `package.json`, `package-lock.json` (`next@16.4.5`, `vitest@5.1.0`, `@types/node@24.12.0` — `npm.cmd audit` báo `found 0 vulnerabilities`, hết hoàn toàn cảnh báo `install-scripts`).
   - `tsconfig.json` (Next 16 tự động chuyển sang `jsx: "react-jsx"` và thêm `.next/dev/types/**/*.ts`).
-- **File đang sửa dở**: `Không có (Bước 1 đã commit sạch sẽ)`
+- **File đang sửa dở (Codex U3)**: `Không còn; U3.1 và U3.2 đã kiểm tra xong.`
 - **Ghi chú bàn giao cho Claude (Bước 2) và Codex (Bước 3)**:
   - `Claude: Mở src/hooks/useCountdown.ts, src/hooks/useExamAttempt.ts, src/lib/citation/index.ts kiểm tra nhanh dưới tsconfig mới.`
   - `Codex: Khi chạy vitest@5.1.0 đang có cảnh báo: "Your Vite config uses features that are unsupported by configLoader: 'native'... Use a .mjs/.mts extension (vitest.config.ts)". Hãy chuyển vitest.config.ts sang vitest.config.mts (dùng fileURLToPath(new URL('./src', import.meta.url))) để triệt tiêu cảnh báo này, chạy lại 4 lệnh kiểm tra và cập nhật HANDOFF.md.`
+
+### Kết quả Codex U3.1 & U3.2 — 2026-11-07
+- [x] Đã chuyển sang vitest.config.mts chuẩn ESM: import fileURLToPath từ node:url và alias @ dùng fileURLToPath(new URL('./src', import.meta.url)); đã xoá vitest.config.ts, không dùng __dirname hoặc ép configLoader để che cảnh báo.
+- [x] Rà soát src/server/**, src/app/api/** và tests/** với @types/node@24: Buffer/crypto/fetch/AbortSignal, Uint8Array cho Response, timer/mocks và params dạng Promise của Route Handlers tương thích; không cần sửa mã backend hoặc test.
+- [x] npm.cmd audit: found 0 vulnerabilities (exit 0).
+- [x] npm.cmd run typecheck: 0 errors (exit 0).
+- [x] npm.cmd test: Vitest 5.1.0, 10/10 files và 36/36 tests PASS; 0 warnings, không còn cảnh báo configLoader native (exit 0).
+- [x] npm.cmd run build: Next.js 16.4.5 (Turbopack), compile/typecheck/generate routes thành công; 0 warnings (exit 0).
+- Cả 4 lệnh không phát ra cảnh báo. Không sửa package.json, package-lock.json, tsconfig.json, src/types/** hoặc các file hooks đang được Claude sửa; không merge/push. Sẵn sàng bàn giao Antigravity thực hiện U4.1.

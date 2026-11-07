@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AnswerValue, Attempt, Exam, Question, SelfGrade, Station } from "@/types";
-import { computeRemainingSec, useCountdown, type CountdownState } from "./useCountdown";
+import { computeRemainingSec, useCountdown, useLatestRef, type CountdownState } from "./useCountdown";
 
 // ---------------------------------------------------------------------------
 // Hàm thuần
@@ -237,16 +237,12 @@ export function useExamAttempt(options: UseExamAttemptOptions): UseExamAttemptRe
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   const attemptRef = useRef(attempt);
-  const examRef = useRef(exam);
-  examRef.current = exam;
-  const saveRef = useRef(save);
-  saveRef.current = save;
-  const nowRef = useRef(now);
-  nowRef.current = now;
-  const onSubmitRef = useRef(onSubmit);
-  onSubmitRef.current = onSubmit;
-  const onStationChangeRef = useRef(onStationChange);
-  onStationChangeRef.current = onStationChange;
+  // Không ghi ref lúc render (React 19 / React Compiler): dùng useLatestRef.
+  const examRef = useLatestRef(exam);
+  const saveRef = useLatestRef(save);
+  const nowRef = useLatestRef(now);
+  const onSubmitRef = useLatestRef(onSubmit);
+  const onStationChangeRef = useLatestRef(onStationChange);
 
   const dirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

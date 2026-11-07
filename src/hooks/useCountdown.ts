@@ -11,7 +11,20 @@
  *   UI nên hiển thị "--:--" khi `!isReady`.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+
+/**
+ * Ref luôn giữ giá trị mới nhất. Cập nhật trong layout effect (sau commit), KHÔNG ghi ref lúc render
+ * — đúng khuyến nghị React 19 / React Compiler. Layout effect chạy trước mọi passive effect và
+ * event handler, nên callback đọc ref luôn thấy giá trị của lần render vừa commit.
+ */
+export function useLatestRef<T>(value: T): RefObject<T> {
+  const ref = useRef(value);
+  useLayoutEffect(() => {
+    ref.current = value;
+  });
+  return ref;
+}
 
 export const WARNING_5_MIN_SEC = 300;
 export const WARNING_1_MIN_SEC = 60;
@@ -83,12 +96,9 @@ export function useCountdown(options: UseCountdownOptions): CountdownState {
   const isPaused = mode === "practice" && pausedRemainingSec !== null;
   const [nowMs, setNowMs] = useState<number | null>(null);
 
-  const nowRef = useRef(now);
-  nowRef.current = now;
-  const onExpireRef = useRef(onExpire);
-  onExpireRef.current = onExpire;
-  const onStationExpireRef = useRef(onStationExpire);
-  onStationExpireRef.current = onStationExpire;
+  const nowRef = useLatestRef(now);
+  const onExpireRef = useLatestRef(onExpire);
+  const onStationExpireRef = useLatestRef(onStationExpire);
 
   // Nhịp đồng hồ + cập nhật ngay khi tab hiện lại.
   useEffect(() => {
