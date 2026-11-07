@@ -7,13 +7,37 @@ const folderMime = 'application/vnd.google-apps.folder';
 const allowedImages = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif'];
 export const isAllowedImage = (mime: string) => allowedImages.includes(mime.toLowerCase());
 
+function parseServiceAccountJson(rawInput: string): unknown {
+  let raw = rawInput.trim();
+  if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"'))) {
+    raw = raw.slice(1, -1).trim();
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+  } catch {
+    try {
+      return JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
+    } catch {
+      throw new ServiceError('GOOGLE_SERVICE_ACCOUNT_JSON không đúng định dạng JSON.', 503);
+    }
+  }
+}
+
+function normalizeFolderId(rawInput: string): string {
+  const trimmed = rawInput.trim().replace(/^['"]|['"]$/g, '');
+  const match = trimmed.match(/\/folders\/([\w-]+)/);
+  return match ? match[1] : trimmed;
+}
+
 /** No secret is created or persisted. Reads only the explicitly configured service account. */
 export function createGoogleDriveClient(env: NodeJS.ProcessEnv = process.env, fetcher: typeof fetch = fetch): DriveClient {
-  requireValue(env.GOOGLE_SERVICE_ACCOUNT_JSON && env.DRIVE_ROOT_FOLDER_ID, 'Chưa cấu hình Google Drive.', 503);
-  const account: unknown = JSON.parse(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  requireValue(env.GOOGLE_SERVICE_ACCOUNT_JSON && env.DRIVE_ROOT_FOLDER_ID, 'Chưa cấu hình Google Drive (thiếu biến môi trường trên Vercel/Local).', 503);
+  const account: unknown = parseServiceAccountJson(env.GOOGLE_SERVICE_ACCOUNT_JSON);
   requireValue(object(account) && typeof account.client_email === 'string' && typeof account.private_key === 'string', 'Cấu hình Google Drive không hợp lệ.', 503);
-  const email = account.client_email; const privateKey = account.private_key;
-  const root = env.DRIVE_ROOT_FOLDER_ID;
+  const email = account.client_email.trim();
+  const privateKey = account.private_key.replace(/\\n/g, '\n');
+  const root = normalizeFolderId(env.DRIVE_ROOT_FOLDER_ID);
   requireValue(/^[\w-]+$/.test(root), 'DRIVE_ROOT_FOLDER_ID không hợp lệ.', 503);
   let token: { value: string; until: number } | undefined;
   let pendingToken: Promise<string> | undefined;
