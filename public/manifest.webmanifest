@@ -1,0 +1,18 @@
+{
+  "name": "Web Học Y4 — Ôn tập Lâm sàng & Thư viện Y khoa",
+  "short_name": "Học Y4",
+  "description": "Nền tảng cá nhân ôn thi trắc nghiệm, tự luận, chạy trạm OSCE và đọc tài liệu Y4 có chú thích nguồn",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
